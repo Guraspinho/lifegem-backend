@@ -1,0 +1,101 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.12/schema.json",
+	"vcs": {
+		"enabled": false,
+		"clientKind": "git",
+		"useIgnoreFile": false
+	},
+	"files": {
+		"ignoreUnknown": false,
+		"includes": [
+			"**",
+			"!**/*.js",
+			"!**/*.d.ts",
+			"!**/dist/",
+			"!.github/",
+			"!aws/"
+		]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"lineEnding": "lf"
+	},
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
+	"linter": {
+		"enabled": true,
+		"includes": ["**", "!**/*.js", "!aws/"],
+		"rules": {
+			"recommended": false,
+			"complexity": {
+				"noBannedTypes": "error",
+				"noUselessThisAlias": "error",
+				"noUselessTypeConstraint": "error",
+				"useArrowFunction": "off",
+				"noForEach": "error",
+				"noUselessCatch": "error",
+				"noUselessSwitchCase": "error",
+				"noUselessEmptyExport": "error"
+			},
+			"correctness": {
+				"noPrecisionLoss": "error",
+				"noUnusedVariables": "error",
+				"noUnusedImports": "error",
+				"noVoidTypeReturn": "warn"
+			},
+			"style": {
+				"noInferrableTypes": "error",
+				"noNamespace": "error",
+				"noNonNullAssertion": "error",
+				"useAsConstAssertion": "error",
+				"useBlockStatements": "error",
+				"useDefaultParameterLast": "error",
+				"useConst": "error",
+				"useThrowNewError": "error",
+				"useThrowOnlyError": "error",
+				"useArrayLiterals": "error"
+			},
+			"suspicious": {
+				"noEmptyBlockStatements": "error",
+				"noEmptyInterface": "error",
+				"noExtraNonNullAssertion": "error",
+				"noMisleadingInstantiator": "error",
+				"useNamespaceKeyword": "error",
+				"noImplicitAnyLet": "error",
+				"noRedeclare": "error",
+				"noThenProperty": "error",
+				"useAwait": "error",
+				"noDoubleEquals": "error",
+				"noConstEnum": "error",
+				"noVar": "error",
+				"noConsole": {
+					"level": "error",
+					"options": {
+						"allow": ["error", "log", "info"]
+					}
+				}
+			},
+			"performance": {
+				"noAccumulatingSpread": "error",
+				"noDelete": "error",
+				"noReExportAll": "error"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double",
+			"semicolons": "always",
+			"indentWidth": 4
+		},
+		"parser": {
+			"unsafeParameterDecoratorsEnabled": true
+		}
+	}
+}
