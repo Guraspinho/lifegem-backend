@@ -1,12 +1,10 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
-import { AppService } from "./app.service";
+import { GetHealthCheckResponseDto } from "./dto/get-health-check-response.dto";
 
 @ApiTags("Health Check")
-@Controller()
-export class AppController {
-	constructor(private readonly appService: AppService) {}
-
+@Controller("health-check")
+export class HealthCheckController {
 	@ApiOperation({
 		summary: "Application Health Check",
 		description:
@@ -14,10 +12,10 @@ export class AppController {
 	})
 	@ApiResponse({
 		description: "The server is healthy and running.",
-		example: { health: true },
+		type: GetHealthCheckResponseDto,
 	})
-	@Get("/health-check")
-	getHealthStatus(): { health: true } {
-		return this.appService.getHealthStatus();
+	@Get()
+	getHealthStatus(): GetHealthCheckResponseDto {
+		return { health: true };
 	}
 }
