@@ -1,13 +1,13 @@
 import { Logger, Provider } from "@nestjs/common";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaService } from "../prisma.service";
+import { DatabaseService } from "../database.service";
 
-export const PrismaProvider: Provider = {
-	provide: PrismaService,
+export const DatabaseProvider: Provider = {
+	provide: DatabaseService,
 	useFactory: async () => {
-		const logger = new Logger("PrismaProvider");
+		const logger = new Logger("DatabaseProvider");
 
-		const client = new PrismaService({
+		const client = new DatabaseService({
 			adapter: new PrismaPg({
 				connectionString: process.env.DATABASE_URL,
 			}),

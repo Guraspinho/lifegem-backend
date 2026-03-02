@@ -13,7 +13,9 @@
 			"!**/*.d.ts",
 			"!**/dist/",
 			"!.github/",
-			"!aws/"
+			"!aws/",
+			"!generated/**",
+			"!node_modules/**"
 		]
 	},
 	"formatter": {
