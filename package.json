@@ -18,7 +18,9 @@
 		"test:cov": "jest --coverage",
 		"test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
 		"test:e2e": "jest --config ./test/jest-e2e.json",
-		"prisma:generate": "pnpm prisma generate"
+		"prisma:generate": "pnpm prisma generate",
+		"prisma:migrate": "pnpm prisma migrate",
+		"prisma:migrate:dev": "pnpm prisma migrate dev"
 	},
 	"dependencies": {
 		"@nestjs/common": "^10.0.0",
@@ -28,6 +30,7 @@
 		"@nestjs/swagger": "^11.2.6",
 		"@prisma/adapter-pg": "^7.4.2",
 		"@prisma/client": "^7.4.2",
+		"argon2": "^0.44.0",
 		"class-transformer": "^0.5.1",
 		"class-validator": "^0.15.1",
 		"dotenv": "^17.3.1",
