@@ -8,24 +8,12 @@ import {
 	MinLength,
 } from "class-validator";
 
-export class CreateUserRequestDto {
+export class LoginRequestDto {
 	@ApiProperty()
 	@IsNotEmpty()
 	@IsEmail()
 	@Transform(({ value }) => value.toLowerCase())
 	email: string;
-
-	@ApiProperty()
-	@IsNotEmpty()
-	@IsString()
-	@MaxLength(32)
-	name: string;
-
-	@ApiProperty()
-	@IsNotEmpty()
-	@IsString()
-	@MaxLength(32)
-	surname: string;
 
 	@ApiProperty()
 	@IsNotEmpty()

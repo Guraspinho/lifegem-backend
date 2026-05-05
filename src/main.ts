@@ -1,6 +1,7 @@
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { SwaggerModule } from "@nestjs/swagger";
+import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 import { swaggerConfig } from "./core/swagger/swagger";
 
@@ -14,6 +15,7 @@ async function bootstrap() {
 		new ValidationPipe({ transform: true, whitelist: true }),
 	);
 	app.enableCors();
+	app.use(cookieParser());
 
 	await app.listen(process.env.PORT ?? 3000);
 }
