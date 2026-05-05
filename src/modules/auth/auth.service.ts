@@ -10,6 +10,7 @@ import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 import argon from "argon2";
 import { DatabaseService } from "../../core/database/database.service";
 import { LoginRequestDto } from "./dto/login-request.dto";
+import { RefreshResponseDto } from "./dto/refresh-response.dto";
 import { RegisterRequestDto } from "./dto/register-request.dto";
 import { RegisterResponseDto } from "./dto/register-response.dto";
 import { JwtTokenTypeEnum } from "./enums/jwt-token-type.enum";
@@ -101,6 +102,49 @@ export class AuthService {
 
 			throw new InternalServerErrorException(
 				"Something went wrong, Unable to log in",
+			);
+		}
+	}
+
+	async refresh(
+		userId: number,
+		refreshToken: string,
+	): Promise<RefreshResponseDto> {
+		try {
+			const user = await this.databaseService.users.findUnique({
+				where: { id: userId },
+			});
+
+			if (!user || !user.refreshToken) {
+				throw new UnauthorizedException(
+					"Invalid user or refresh token",
+				);
+			}
+
+			const verifyRefreshToken = await argon.verify(
+				user.refreshToken,
+				refreshToken,
+			);
+
+			if (!verifyRefreshToken) {
+				throw new UnauthorizedException("Invalid refresh token");
+			}
+
+			const accessToken = await this.generateJwtToken(
+				JwtTokenTypeEnum.ACCESS,
+				user.id,
+				user.email,
+			);
+			return { accessToken };
+		} catch (error) {
+			this.logger.error(error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new InternalServerErrorException(
+				"Something went wrong, Unable to refresh the token",
 			);
 		}
 	}
