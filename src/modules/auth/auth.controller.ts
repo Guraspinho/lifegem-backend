@@ -60,6 +60,7 @@ export class AuthController {
 
 	@HttpCode(200)
 	@ApiResponse({
+		type: RefreshResponseDto,
 		headers: {
 			HttpCode: {
 				schema: { type: "number", example: 200 },
