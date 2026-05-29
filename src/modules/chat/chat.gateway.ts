@@ -1,3 +1,4 @@
+import { UseGuards } from "@nestjs/common";
 import {
 	OnGatewayConnection,
 	OnGatewayDisconnect,
@@ -6,22 +7,34 @@ import {
 	WebSocketServer,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
+import { WsAuthGuard } from "../../common/guards/ws-auth.guard";
+import { ChatService } from "./chat.service";
 
 @WebSocketGateway()
-export class ChatGatweay implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	@WebSocketServer()
 	server: Server;
 
+	constructor(private readonly chatService: ChatService) {}
+
 	handleConnection(client: Socket): void {
-		this.server.emit("room", client.id + " joined!");
+		this.chatService.handleConnection(client);
 	}
 
 	handleDisconnect(client: Socket): void {
+		this.chatService.handleDisconnect(client);
 		this.server.emit("room", client.id + " left!");
 	}
 
-	@SubscribeMessage("customName")
-	handleMessage(client: Socket, message: any): void {
-		this.server.emit("room", `[${client.id}] -> ${message}`);
+	@UseGuards(WsAuthGuard)
+	@SubscribeMessage("message")
+	handleMessage(client: Socket, message: string): void {
+		this.chatService.handleMessage(client, message);
+		const room = client.data.user.sub;
+
+		this.server.to(room).emit("message", {
+			room,
+			message,
+		});
 	}
 }
