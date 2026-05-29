@@ -4,6 +4,7 @@ import { DatabaseModule } from "./core/database/database.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ChatModule } from "./modules/chat/chat.module";
 import { HealthCheckModule } from "./modules/health-check/health-check.module";
+import { UserModule } from "./modules/user/user.module";
 
 @Module({
 	imports: [
@@ -12,6 +13,7 @@ import { HealthCheckModule } from "./modules/health-check/health-check.module";
 		HealthCheckModule,
 		AuthModule,
 		ChatModule,
+		UserModule,
 	],
 	controllers: [],
 	providers: [],

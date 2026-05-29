@@ -15,6 +15,10 @@ model Users {
   name String
   surname String
   refreshToken String?
+  completed_simulations Int @default(0)
+  average_score Int?
+  survival_rate Int?
+  correct_diagnosis_rate Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
