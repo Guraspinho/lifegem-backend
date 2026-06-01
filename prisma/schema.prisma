@@ -19,6 +19,63 @@ model Users {
   average_score Int?
   survival_rate Int?
   correct_diagnosis_rate Int?
+  sessions Sessions[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Sessions {
+  id Int @default(autoincrement()) @id
+  user Users @relation(fields: [user_id], references: [id])
+  user_id Int
+  specialty Specialty
+  patient_problem String
+  score Int?
+  patient_survived Boolean?
+  correct_diagnosis Boolean?
+  duration_seconds Int?
+  status SessionStatus @default(ACTIVE)
+  final_diagnosis String?
+  messages Messages[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([user_id])
+}
+
+model Messages {
+  id Int @default(autoincrement()) @id
+  session Sessions @relation(fields: [session_id], references: [id])
+  session_id Int
+  score Int
+  message_type MessageType
+  author_type AuthorType
+  text String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([session_id])
+}
+
+enum Specialty {
+  TRAUMATOLOGY
+  CARDIOLOGY
+  EMERGENCY_MEDICINE
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+enum MessageType {
+  CHAT
+  ACTION
+  DIAGNOSIS
+}
+  
+enum AuthorType {
+  USER
+  PATIENT
 }

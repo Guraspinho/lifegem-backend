@@ -1,4 +1,4 @@
-import { UseGuards } from "@nestjs/common";
+import { UseFilters, UseGuards, UsePipes } from "@nestjs/common";
 import {
 	OnGatewayConnection,
 	OnGatewayDisconnect,
@@ -7,10 +7,15 @@ import {
 	WebSocketServer,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
+import { WsExceptionFilter } from "../../common/filters/ws-exception.filter";
 import { WsAuthGuard } from "../../common/guards/ws-auth.guard";
+import { WsValidationPipe } from "../../common/pipes/ws-validation.pipe";
 import { ChatService } from "./chat.service";
+import { StartSessionDto } from "./dto/start-session.dto";
 
 @WebSocketGateway()
+@UsePipes(new WsValidationPipe())
+@UseFilters(new WsExceptionFilter())
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	@WebSocketServer()
 	server: Server;
@@ -27,7 +32,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	}
 
 	@UseGuards(WsAuthGuard)
-	@SubscribeMessage("message")
+	@SubscribeMessage("start_session")
+	async handleStartSsession(
+		client: Socket,
+		message: StartSessionDto,
+	): Promise<void> {
+		await this.chatService.handleStartSession(client, message);
+	}
+
+	@UseGuards(WsAuthGuard)
+	@SubscribeMessage("chat_message")
 	handleMessage(client: Socket, message: string): void {
 		this.chatService.handleMessage(client, message);
 		const room = client.data.user.sub;

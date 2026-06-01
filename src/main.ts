@@ -3,7 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import { SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
-import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
+import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { swaggerConfig } from "./core/swagger/swagger";
 
 async function bootstrap() {
@@ -12,7 +12,7 @@ async function bootstrap() {
 	const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 	SwaggerModule.setup("api-docs", app, swaggerDocument);
 
-	app.useGlobalFilters(new GlobalExceptionFilter());
+	app.useGlobalFilters(new HttpExceptionFilter());
 	app.useGlobalPipes(
 		new ValidationPipe({ transform: true, whitelist: true }),
 	);
