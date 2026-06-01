@@ -1,10 +1,15 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import jwt from "jsonwebtoken";
 import { Socket } from "socket.io";
+import { DatabaseService } from "../../core/database/database.service";
 import { TokenPayloadType } from "../auth/types/token-payload.type";
+import { StartSessionDto } from "./dto/start-session.dto";
+import { SessionStatusEnum } from "./enums/session-status.enum";
 
 @Injectable()
 export class ChatService {
+	constructor(private readonly databaseService: DatabaseService) {}
+
 	handleConnection(client: Socket) {
 		const token = client.handshake.query.auth;
 
@@ -26,8 +31,8 @@ export class ChatService {
 			if (!payload.sub) {
 				throw new UnauthorizedException();
 			}
-			client.data.user = payload;
 
+			client.data.user = payload;
 			const room = payload.sub.toString();
 			client.join(room);
 		} catch (error) {
@@ -38,8 +43,35 @@ export class ChatService {
 		}
 	}
 
+	async handleStartSession(
+		client: Socket,
+		message: StartSessionDto,
+	): Promise<void> {
+		const userId = client.data.user.sub;
+		const { specialty } = message;
+		const status = SessionStatusEnum.ACTIVE;
+		const sessionStartTime = new Date();
+		const patientProblem = "SOME RANDOM PROBLEM";
+
+		client.data.sessionStartTime = sessionStartTime;
+
+		const { id } = await this.databaseService.sessions.create({
+			data: {
+				user_id: userId,
+				specialty: specialty,
+				patient_problem: patientProblem,
+				status,
+			},
+			select: {
+				id: true,
+			},
+		});
+
+		client.data.sessionId = id;
+	}
+
 	handleDisconnect(client: Socket) {
-		console.log(client.id);
+		console.log(`The client with id: ${client.id} disconnected`);
 		// End of the chat here. After this step,
 		// The analyzation part is executed
 	}

@@ -8,22 +8,22 @@ import {
 	Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
-import { ExceptionHandlerType } from "./types/exception-handler.type";
+import { type HttpExceptionHandlerType } from "./types/http-exception-handler.type";
 
 @Catch()
-export class GlobalExceptionFilter implements ExceptionFilter {
-	private readonly logger = new Logger(GlobalExceptionFilter.name);
+export class HttpExceptionFilter implements ExceptionFilter {
+	private readonly logger = new Logger(HttpExceptionFilter.name);
 
 	catch(exception: unknown, host: ArgumentsHost) {
 		const ctx = host.switchToHttp();
 		const response = ctx.getResponse<Response>();
 		const request = ctx.getRequest<Request>();
 
-        let statusCode: number;
-        let error: string | object;
+		let statusCode: number;
+		let error: string | object;
 
 		if (exception instanceof HttpException) {
-		    statusCode = exception.getStatus();
+			statusCode = exception.getStatus();
 			error = exception.getResponse();
 		} else if (
 			exception instanceof PrismaClientKnownRequestError &&
@@ -32,20 +32,26 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 			statusCode = HttpStatus.CONFLICT;
 			error = "Email already in use";
 		} else {
-            statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+			statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
 			error = "Internal server error";
 		}
 
-        this.handleException({
-            statusCode,
-            timestamp: new Date().toISOString(),
-            path: request.url,
-            error,
-        }, response);
+		this.handleException(
+			{
+				statusCode,
+				timestamp: new Date().toISOString(),
+				path: request.url,
+				error,
+			},
+			response,
+		);
 	}
 
-    private handleException(exception: ExceptionHandlerType, response: Response) {
-        this.logger.error(exception);
-        response.status(exception.statusCode).json(exception);
-    }
+	private handleException(
+		exception: HttpExceptionHandlerType,
+		response: Response,
+	) {
+		this.logger.error(exception);
+		response.status(exception.statusCode).json(exception);
+	}
 }

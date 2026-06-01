@@ -1,7 +1,4 @@
-import {
-	Injectable,
-	UnauthorizedException,
-} from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 import argon from "argon2";
 import { DatabaseService } from "../../core/database/database.service";
@@ -82,9 +79,7 @@ export class AuthService {
 		});
 
 		if (!user || !user.refreshToken) {
-			throw new UnauthorizedException(
-				"Invalid user or refresh token",
-			);
+			throw new UnauthorizedException("Invalid user or refresh token");
 		}
 
 		const verifyRefreshToken = await argon.verify(
