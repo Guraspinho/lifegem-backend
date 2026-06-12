@@ -1,4 +1,4 @@
-import { ValidationPipe } from "@nestjs/common";
+import { Logger, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
@@ -25,5 +25,12 @@ async function bootstrap() {
 	app.use(cookieParser());
 
 	await app.listen(process.env.PORT ?? 3000);
+
+	const logger = new Logger("Bootstrap");
+	if (process.env.USE_OLLAMA_CLOUD === "true") {
+		logger.log("The app is using Ollama cloud ");
+	} else {
+		logger.log("The app is using Ollama local");
+	}
 }
 bootstrap();

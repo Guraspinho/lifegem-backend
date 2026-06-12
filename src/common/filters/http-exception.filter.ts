@@ -31,6 +31,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
 		) {
 			statusCode = HttpStatus.CONFLICT;
 			error = "Email already in use";
+		} else if (
+			exception instanceof PrismaClientKnownRequestError &&
+			exception.code === "P2025"
+		) {
+			statusCode = HttpStatus.BAD_REQUEST;
+			error = "User not found";
 		} else {
 			statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
 			error = "Internal server error";

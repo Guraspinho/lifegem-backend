@@ -44,11 +44,5 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	@SubscribeMessage("chat_message")
 	handleMessage(client: Socket, message: string): void {
 		this.chatService.handleMessage(client, message);
-		const room = client.data.user.sub;
-
-		this.server.to(room).emit("message", {
-			room,
-			message,
-		});
 	}
 }

@@ -99,6 +99,13 @@ export class AuthService {
 		return { accessToken };
 	}
 
+	async logout(userId: number): Promise<void> {
+		await this.databaseService.users.update({
+			where: { id: userId },
+			data: { refreshToken: null },
+		});
+	}
+
 	private async generateJwtToken(
 		type: JwtTokenTypeEnum,
 		sub: number,
