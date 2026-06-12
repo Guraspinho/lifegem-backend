@@ -9,6 +9,7 @@ import {
 } from "@nestjs/common";
 import { ApiResponse } from "@nestjs/swagger";
 import { Request, Response } from "express";
+import { AccessAuthGuard } from "../../common/guards/access-auth.guard";
 import { RefreshAuthGuard } from "../../common/guards/refresh-auth.guard";
 import { AuthService } from "./auth.service";
 import { LoginRequestDto } from "./dto/login-request.dto";
@@ -74,5 +75,30 @@ export class AuthController {
 		const refreshToken = request["refresh_token"];
 
 		return await this.authService.refresh(userId, refreshToken);
+	}
+
+	@HttpCode(200)
+	@ApiResponse({
+		headers: {
+			HttpCode: {
+				schema: { type: "number", example: 200 },
+			},
+		},
+	})
+	@Post("logout")
+	@UseGuards(AccessAuthGuard)
+	async logout(
+		@Req() request: Request,
+		@Res({ passthrough: true }) response: Response,
+	): Promise<void> {
+		const { sub } = request["user"];
+
+		response.clearCookie("refresh_token", {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "strict",
+		});
+
+		return await this.authService.logout(sub);
 	}
 }
