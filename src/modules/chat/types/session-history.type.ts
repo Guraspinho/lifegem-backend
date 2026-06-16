@@ -1,7 +1,7 @@
 import { PatientDataType } from "./patient-data.type";
 import { PatientVitalsType } from "./patient-vitals.type";
 
-type SessionHistoryEntryType = {
+export type SessionHistoryEntryType = {
 	userMessage: string | null;
 	systemMessage: string;
 	vitals: PatientVitalsType;
