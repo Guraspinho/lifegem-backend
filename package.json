@@ -23,11 +23,11 @@
 		"prisma:migrate:dev": "pnpm prisma migrate dev"
 	},
 	"dependencies": {
-		"@nestjs/common": "^10.0.0",
+		"@nestjs/common": "^11.0.0",
 		"@nestjs/config": "^4.0.3",
-		"@nestjs/core": "^10.0.0",
+		"@nestjs/core": "^11.0.0",
 		"@nestjs/jwt": "^11.0.2",
-		"@nestjs/platform-express": "^10.0.0",
+		"@nestjs/platform-express": "^11.0.0",
 		"@nestjs/platform-socket.io": "^11.1.21",
 		"@nestjs/swagger": "^11.2.6",
 		"@nestjs/websockets": "^11.1.21",
@@ -50,8 +50,8 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.4.4",
 		"@nestjs/cli": "^11.0.21",
-		"@nestjs/schematics": "^10.0.0",
-		"@nestjs/testing": "^10.0.0",
+		"@nestjs/schematics": "^11.0.0",
+		"@nestjs/testing": "^11.0.0",
 		"@types/cookie-parser": "^1.4.10",
 		"@types/express": "^5.0.0",
 		"@types/jest": "^29.5.2",

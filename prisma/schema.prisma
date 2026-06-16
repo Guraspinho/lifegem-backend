@@ -29,32 +29,24 @@ model Sessions {
   user Users @relation(fields: [user_id], references: [id])
   user_id Int
   specialty Specialty
-  patient_problem String
   score Int?
   patient_survived Boolean?
   correct_diagnosis Boolean?
   duration_seconds Int?
   status SessionStatus @default(ACTIVE)
+  patient_name String?
+  patient_age Int?
+  patient_gender String?
+  patient_weight Int?
+  known_allergies String?
+  condition String?
   final_diagnosis String?
-  messages Messages[]
+  history Json @default("[]")
+  systemAnalysis String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([user_id])
-}
-
-model Messages {
-  id Int @default(autoincrement()) @id
-  session Sessions @relation(fields: [session_id], references: [id])
-  session_id Int
-  score Int
-  message_type MessageType
-  author_type AuthorType
-  text String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([session_id])
 }
 
 enum Specialty {
@@ -67,15 +59,4 @@ enum SessionStatus {
   ACTIVE
   COMPLETED
   ABANDONED
-}
-
-enum MessageType {
-  CHAT
-  ACTION
-  DIAGNOSIS
-}
-  
-enum AuthorType {
-  USER
-  PATIENT
 }
