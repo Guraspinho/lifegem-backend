@@ -27,6 +27,15 @@ async function bootstrap() {
 	await app.listen(process.env.PORT ?? 3000);
 
 	const logger = new Logger("Bootstrap");
+
+	// Safety net: keep the server alive on stray async errors instead of
+	// letting Node terminate the process (which would drop all connections).
+	process.on("unhandledRejection", (reason) => {
+		logger.error("Unhandled promise rejection", reason as Error);
+	});
+	process.on("uncaughtException", (error) => {
+		logger.error("Uncaught exception", error);
+	});
 	if (process.env.USE_OLLAMA_CLOUD === "true") {
 		logger.log("The app is using Ollama cloud ");
 	} else {

@@ -1,8 +1,4 @@
-import {
-	BadRequestException,
-	Injectable,
-	UnauthorizedException,
-} from "@nestjs/common";
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { XMLParser } from "fast-xml-parser";
 import jwt from "jsonwebtoken";
 import { GenerateResponse } from "ollama";
@@ -21,6 +17,7 @@ import { SessionHistoryType } from "./types/session-history.type";
 
 @Injectable()
 export class ChatService {
+	private readonly logger = new Logger(ChatService.name);
 	private readonly xmlParser = new XMLParser();
 	private activeSessions = new Map<number, SessionHistoryType>();
 
@@ -29,164 +26,144 @@ export class ChatService {
 		private readonly aiService: AiService,
 	) {}
 
-	handleConnection(client: Socket) {
-		const token = client.handshake.query.auth;
-
-		if (typeof token !== "string") {
-			throw new UnauthorizedException("Invalid token format");
-		}
-
-		if (!token) {
-			client.emit("error", "No token provided");
-			client.disconnect();
-			throw new UnauthorizedException("Invalid or missing auth token");
-		}
+	handleConnection(client: Socket): void {
 		try {
+			const token = client.handshake.query.auth;
+
+			if (typeof token !== "string" || !token) {
+				return this.rejectConnection(client, "Missing or invalid auth token");
+			}
+
 			const payload = jwt.verify(
 				token,
 				process.env.ACCESS_TOKEN_SECRET as string,
 			) as TokenPayloadType;
 
 			if (!payload.sub) {
-				throw new UnauthorizedException();
+				return this.rejectConnection(client, "Invalid token payload");
 			}
 
 			client.data.user = payload;
-			const room = payload.sub.toString();
-			client.join(room);
+			client.join(payload.sub.toString());
 		} catch (error) {
-			console.error(error);
-			client.emit("error", "Invalid or expired token");
-			client.disconnect();
-			return;
+			this.logger.error("Connection rejected", error as Error);
+			this.rejectConnection(client, "Invalid or expired token");
 		}
+	}
+
+	private rejectConnection(client: Socket, message: string): void {
+		client.emit("error", { message });
+		client.disconnect();
 	}
 
 	async handleStartSession(
 		client: Socket,
 		message: StartSessionDto,
 	): Promise<void> {
-		try {
-			const userId = client.data.user.sub;
-			const { specialty } = message;
+		const userId = client.data.user.sub;
+		const { specialty } = message;
 
-			const status = SessionStatusEnum.ACTIVE;
-			const sessionStartTime = new Date();
-			const prompt = createPatientPrompt(specialty);
+		const status = SessionStatusEnum.ACTIVE;
+		const sessionStartTime = new Date();
+		const prompt = createPatientPrompt(specialty);
 
-			const { outputMessage, patient } =
-				this.parseAiResponse<PatientInitialInfoType>(
-					await this.aiService.generate(prompt),
-				);
+		const { outputMessage, patient } =
+			this.parseAiResponse<PatientInitialInfoType>(
+				await this.aiService.generate(prompt),
+			);
 
-			const {
-				patientName,
-				patientAge,
-				patientGender,
-				weight,
-				knownAllergies,
+		const {
+			patientName,
+			patientAge,
+			patientGender,
+			weight,
+			knownAllergies,
+			condition,
+			...vitals
+		} = patient;
+
+		const data = {
+			patientName,
+			patientAge,
+			patientGender,
+			weight,
+			knownAllergies,
+			condition,
+		};
+
+		const { id } = await this.databaseService.sessions.create({
+			data: {
+				user_id: userId,
+				specialty: specialty,
+				patient_name: patientName,
+				patient_age: patientAge,
+				patient_gender: patientGender,
+				patient_weight: weight,
+				known_allergies: knownAllergies,
 				condition,
-				...vitals
-			} = patient;
+				status,
+			},
+			select: {
+				id: true,
+			},
+		});
 
-			const data = {
-				patientName,
-				patientAge,
-				patientGender,
-				weight,
-				knownAllergies,
-				condition,
-			};
-
-			client.data.sessionStartTime = sessionStartTime;
-			client.emit("session:start", { message: outputMessage, patient });
-
-			const { id } = await this.databaseService.sessions.create({
-				data: {
-					user_id: userId,
-					specialty: specialty,
-					patient_name: patientName,
-					patient_age: patientAge,
-					patient_gender: patientGender,
-					patient_weight: weight,
-					known_allergies: knownAllergies,
-					condition,
-					status,
+		this.activeSessions.set(id, {
+			sessionHistory: [
+				{
+					userMessage: null,
+					systemMessage: outputMessage,
+					vitals,
 				},
-				select: {
-					id: true,
-				},
-			});
+			],
+			patient: data,
+			finalDiagnosis: "",
+		});
 
-			this.activeSessions.set(id, {
-				sessionHistory: [
-					{
-						userMessage: null,
-						systemMessage: outputMessage,
-						vitals,
-					},
-				],
-				patient: data,
-				finalDiagnosis: "",
-			});
+		client.data.sessionStartTime = sessionStartTime;
+		client.data.sessionId = id;
 
-			client.data.sessionId = id;
+		await this.databaseService.users.update({
+			where: { id: userId },
+			data: { completed_simulations: { increment: 1 } },
+		});
 
-			await this.databaseService.users.update({
-				where: { id: userId },
-				data: { completed_simulations: { increment: 1 } },
-			});
-		} catch (error) {
-			client.emit("chat:error", { message: error });
-			throw error;
-		}
+		client.emit("session:start", { message: outputMessage, patient });
 	}
 
-	async handleChatMessage(client: Socket, message: string) {
-		try {
-			const { sessionId } = client.data;
+	async handleChatMessage(client: Socket, message: string): Promise<void> {
+		const { sessionId } = client.data;
 
-			const session = this.getSession(sessionId);
-			const prompt = generateActiveChatPrompt(session, message);
+		const session = this.getSession(sessionId);
+		const prompt = generateActiveChatPrompt(session, message);
 
-			const { outputMessage, patient: vitals } =
-				this.parseAiResponse<PatientVitalsType>(
-					await this.aiService.generate(prompt),
-				);
+		const { outputMessage, patient: vitals } =
+			this.parseAiResponse<PatientVitalsType>(
+				await this.aiService.generate(prompt),
+			);
 
-			session.sessionHistory.push({
-				userMessage: message,
-				systemMessage: outputMessage,
-				vitals,
-			});
+		session.sessionHistory.push({
+			userMessage: message,
+			systemMessage: outputMessage,
+			vitals,
+		});
 
-			this.activeSessions.set(sessionId, session);
-
-			client.emit("message:done", { outputMessage, patient: vitals });
-		} catch (error) {
-			client.emit("chat:error", { message: error });
-			throw error;
-		}
+		client.emit("message:done", { outputMessage, patient: vitals });
 	}
 
-	handleFinalDiagnosis(client: Socket, message: string) {
-		try {
-			const { sessionId } = client.data;
+	handleFinalDiagnosis(client: Socket, message: string): void {
+		const { sessionId } = client.data;
 
-			const session = this.getSession(sessionId);
-			session.finalDiagnosis = message;
-		} catch (error) {
-			client.emit("chat:error", { message: error });
-			throw error;
-		}
+		const session = this.getSession(sessionId);
+		session.finalDiagnosis = message;
 	}
 
-	async handleSessionEnd(client: Socket) {
-		try {
-			const { sessionId } = client.data;
-			const session = this.getSession(sessionId);
-			const history = session.sessionHistory;
+	async handleSessionEnd(client: Socket): Promise<void> {
+		const { sessionId } = client.data;
+		const session = this.getSession(sessionId);
+		const history = session.sessionHistory;
 
+		try {
 			const patientSurvivalStatus =
 				history[history.length - 1].vitals.patientStatus;
 
@@ -229,23 +206,19 @@ export class ChatService {
 			});
 
 			client.emit("session:end", { response, scores });
-			console.log(response);
-		} catch (error) {
-			console.log(`The client with id: ${client.id} disconnected`);
+		} finally {
+			this.activeSessions.delete(sessionId);
 		}
 	}
 
-	async handleDisconnect(client: Socket) {
-		try {
-		} catch (error) {
-			client.emit("chat:error", { message: error });
+	handleDisconnect(client: Socket): void {
+		const sessionId = client.data?.sessionId;
+
+		if (sessionId) {
+			this.activeSessions.delete(sessionId);
 		}
 
-		console.log(`The client with id: ${client.id} disconnected`);
-	}
-
-	handleError() {
-		// The error will be handled here.
+		this.logger.log(`Client disconnected: ${client.id}`);
 	}
 
 	private parseAiResponse<T>(aiResponse: GenerateResponse): {

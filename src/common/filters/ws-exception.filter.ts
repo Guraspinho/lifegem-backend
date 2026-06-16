@@ -1,21 +1,38 @@
-import { ArgumentsHost, Catch, Logger } from "@nestjs/common";
+import { ArgumentsHost, Catch, HttpException, Logger } from "@nestjs/common";
 import { BaseWsExceptionFilter, WsException } from "@nestjs/websockets";
 import { Socket } from "socket.io";
 
-@Catch(WsException)
+// Catch-all: handles WsException, HttpException (BadRequest/Unauthorized/...),
+// and any unexpected error so a single failing handler can never crash the process.
+@Catch()
 export class WsExceptionFilter extends BaseWsExceptionFilter {
-	private readonly logger = new Logger(WsException.name);
+	private readonly logger = new Logger(WsExceptionFilter.name);
 
-	catch(exception: WsException, host: ArgumentsHost) {
+	catch(exception: unknown, host: ArgumentsHost): void {
 		const client = host.switchToWs().getClient<Socket>();
+
 		this.logger.error({
 			timestamp: new Date().toISOString(),
-			clientId: client.id,
-			error: exception,
+			clientId: client?.id,
+			error: exception instanceof Error ? exception.stack : exception,
 		});
 
-		client.emit("error", {
-			message: exception.getError(),
-		});
+		// The socket may already be gone (e.g. error thrown during disconnect).
+		if (client?.connected) {
+			client.emit("error", { message: this.toClientMessage(exception) });
+		}
+	}
+
+	private toClientMessage(exception: unknown): string | object {
+		if (exception instanceof WsException) {
+			return exception.getError();
+		}
+
+		if (exception instanceof HttpException) {
+			return exception.getResponse();
+		}
+
+		// Never leak internal error details/stack traces to the client.
+		return "Internal server error";
 	}
 }
