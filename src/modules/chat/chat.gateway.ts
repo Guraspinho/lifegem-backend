@@ -42,7 +42,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 	@UseGuards(WsAuthGuard)
 	@SubscribeMessage("chat_message")
-	handleMessage(client: Socket, message: string): void {
-		this.chatService.handleMessage(client, message);
+	handleChatMessage(client: Socket, message: string): void {
+		this.chatService.handleChatMessage(client, message);
+	}
+
+	@UseGuards(WsAuthGuard)
+	@SubscribeMessage("final_diagnosis")
+	handleFinalDiagnosis(client: Socket, message: string): void {
+		this.chatService.handleFinalDiagnosis(client, message);
+	}
+
+	@UseGuards(WsAuthGuard)
+	@SubscribeMessage("session_end")
+	handleSessionEnd(client: Socket): void {
+		this.chatService.handleSessionEnd(client);
 	}
 }
