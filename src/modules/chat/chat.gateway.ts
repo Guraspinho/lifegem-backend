@@ -42,8 +42,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 	@UseGuards(WsAuthGuard)
 	@SubscribeMessage("chat_message")
-	handleChatMessage(client: Socket, message: string): void {
-		this.chatService.handleChatMessage(client, message);
+	async handleChatMessage(client: Socket, message: string): Promise<void> {
+		await this.chatService.handleChatMessage(client, message);
 	}
 
 	@UseGuards(WsAuthGuard)
@@ -54,7 +54,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 	@UseGuards(WsAuthGuard)
 	@SubscribeMessage("session_end")
-	handleSessionEnd(client: Socket): void {
-		this.chatService.handleSessionEnd(client);
+	async handleSessionEnd(client: Socket): Promise<void> {
+		await this.chatService.handleSessionEnd(client);
 	}
 }
