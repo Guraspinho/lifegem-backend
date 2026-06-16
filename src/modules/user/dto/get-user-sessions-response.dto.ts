@@ -41,7 +41,8 @@ export class GetUserSessionsResponseDto {
 
 	@ApiProperty({
 		nullable: true,
-		description: "Cursor to pass as `cursor` for the next page, or null if there are no more sessions.",
+		description:
+			"Cursor to pass as `cursor` for the next page, or null if there are no more sessions.",
 	})
 	nextCursor: number | null;
 }

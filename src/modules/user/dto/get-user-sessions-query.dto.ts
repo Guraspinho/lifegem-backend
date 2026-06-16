@@ -24,5 +24,5 @@ export class GetUserSessionsQueryDto {
 	@IsInt()
 	@Min(1)
 	@Max(50)
-	limit: number = 10;
+	limit = 10;
 }

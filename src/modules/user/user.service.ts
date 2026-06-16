@@ -3,10 +3,10 @@ import {
 	Injectable,
 	NotFoundException,
 } from "@nestjs/common";
+import { DatabaseService } from "../../core/database/database.service";
 import { SessionStatusEnum } from "../chat/enums/session-status.enum";
 import { FinalReviewType } from "../chat/types/final-review.type";
 import { SessionHistoryEntryType } from "../chat/types/session-history.type";
-import { DatabaseService } from "../../core/database/database.service";
 import { GetUserSessionResponseDto } from "./dto/get-user-session-response.dto";
 import { GetUserSessionsQueryDto } from "./dto/get-user-sessions-query.dto";
 import { GetUserSessionsResponseDto } from "./dto/get-user-sessions-response.dto";
@@ -67,11 +67,14 @@ export class UserService {
 			};
 		}
 
-		const toPercent = (count: number) => Math.round((count / completed) * 100);
+		const toPercent = (count: number) =>
+			Math.round((count / completed) * 100);
 
 		return {
 			average_score:
-				scoreAgg._avg.score !== null ? Math.round(scoreAgg._avg.score) : null,
+				scoreAgg._avg.score !== null
+					? Math.round(scoreAgg._avg.score)
+					: null,
 			survival_rate: toPercent(survivedCount),
 			correct_diagnosis_rate: toPercent(correctCount),
 		};
@@ -81,7 +84,6 @@ export class UserService {
 		userId: number,
 		{ cursor, limit }: GetUserSessionsQueryDto,
 	): Promise<GetUserSessionsResponseDto> {
-		// Fetch one extra row to know whether another page exists.
 		const sessions = await this.databaseService.sessions.findMany({
 			where: { user_id: userId },
 			take: limit + 1,
@@ -113,7 +115,6 @@ export class UserService {
 		userId: number,
 		sessionId: number,
 	): Promise<GetUserSessionResponseDto> {
-		// Scope by user_id so a user can never read another user's session.
 		const session = await this.databaseService.sessions.findFirst({
 			where: { id: sessionId, user_id: userId },
 			select: {

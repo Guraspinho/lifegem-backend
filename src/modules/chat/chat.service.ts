@@ -32,7 +32,10 @@ export class ChatService {
 			const token = client.handshake.query.auth;
 
 			if (typeof token !== "string" || !token) {
-				return this.rejectConnection(client, "Missing or invalid auth token");
+				return this.rejectConnection(
+					client,
+					"Missing or invalid auth token",
+				);
 			}
 
 			const payload = jwt.verify(
@@ -68,10 +71,10 @@ export class ChatService {
 		const sessionStartTime = new Date();
 		const prompt = createPatientPrompt(specialty);
 
-		const { outputMessage, patient } = await this.aiService.generateValidated(
-			prompt,
-			(response) => this.parseAiResponse<PatientInitialInfoType>(response),
-		);
+		const { outputMessage, patient } =
+			await this.aiService.generateValidated(prompt, (response) =>
+				this.parseAiResponse<PatientInitialInfoType>(response),
+			);
 
 		const {
 			patientName,
@@ -259,7 +262,9 @@ export class ChatService {
 		try {
 			review = JSON.parse(raw.slice(start, end + 1)) as FinalReviewType;
 		} catch {
-			throw new BadRequestException("AI review response was not valid JSON");
+			throw new BadRequestException(
+				"AI review response was not valid JSON",
+			);
 		}
 
 		if (
