@@ -1,11 +1,13 @@
-import { Injectable } from "@nestjs/common";
-import { Ollama } from "ollama";
+import { Injectable, Logger } from "@nestjs/common";
+import { GenerateResponse, Ollama } from "ollama";
 
 @Injectable()
 export class AiService {
+	private readonly logger = new Logger(AiService.name);
 	private readonly ollama: Ollama;
 	private readonly HOST_URL = "https://ollama.com";
 	private readonly model = "gemma3:12b";
+	private static readonly MAX_RETRIES = 2;
 
 	constructor() {
 		if (process.env.USE_OLLAMA_CLOUD === "true") {
@@ -31,5 +33,25 @@ export class AiService {
 				seed: Math.floor(Math.random() * 100000),
 			},
 		});
+	}
+
+	async generateValidated<T>(
+		prompt: string,
+		parse: (response: GenerateResponse) => T,
+	): Promise<T> {
+		const maxAttempts = AiService.MAX_RETRIES + 1;
+		let lastError: unknown;
+
+		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+			const response = await this.generate(prompt);
+
+			try {
+				return parse(response);
+			} catch (error) {
+				lastError = error;
+			}
+		}
+
+		throw lastError;
 	}
 }
