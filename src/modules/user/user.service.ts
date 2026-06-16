@@ -3,6 +3,7 @@ import {
 	Injectable,
 	NotFoundException,
 } from "@nestjs/common";
+import { SessionStatusEnum } from "../chat/enums/session-status.enum";
 import { FinalReviewType } from "../chat/types/final-review.type";
 import { SessionHistoryEntryType } from "../chat/types/session-history.type";
 import { DatabaseService } from "../../core/database/database.service";
@@ -23,13 +24,56 @@ export class UserService {
 			throw new BadRequestException("User not found");
 		}
 
+		const stats = await this.getSessionStats(userId);
+
 		return {
 			name: user.name,
 			surname: user.surname,
 			completed_simulations: user.completed_simulations,
-			average_score: user.average_score,
-			survival_rate: user.survival_rate,
-			correct_diagnosis_rate: user.correct_diagnosis_rate,
+			...stats,
+		};
+	}
+
+	private async getSessionStats(userId: number): Promise<{
+		average_score: number | null;
+		survival_rate: number | null;
+		correct_diagnosis_rate: number | null;
+	}> {
+		const where = {
+			user_id: userId,
+			status: SessionStatusEnum.COMPLETED,
+		};
+
+		const [completed, scoreAgg, survivedCount, correctCount] =
+			await Promise.all([
+				this.databaseService.sessions.count({ where }),
+				this.databaseService.sessions.aggregate({
+					where,
+					_avg: { score: true },
+				}),
+				this.databaseService.sessions.count({
+					where: { ...where, patient_survived: true },
+				}),
+				this.databaseService.sessions.count({
+					where: { ...where, correct_diagnosis: true },
+				}),
+			]);
+
+		if (completed === 0) {
+			return {
+				average_score: null,
+				survival_rate: null,
+				correct_diagnosis_rate: null,
+			};
+		}
+
+		const toPercent = (count: number) => Math.round((count / completed) * 100);
+
+		return {
+			average_score:
+				scoreAgg._avg.score !== null ? Math.round(scoreAgg._avg.score) : null,
+			survival_rate: toPercent(survivedCount),
+			correct_diagnosis_rate: toPercent(correctCount),
 		};
 	}
 
