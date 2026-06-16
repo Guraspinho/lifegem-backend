@@ -11,6 +11,7 @@ import { DatabaseService } from "../../core/database/database.service";
 import { TokenPayloadType } from "../auth/types/token-payload.type";
 import { StartSessionDto } from "./dto/start-session.dto";
 import { SessionStatusEnum } from "./enums/session-status.enum";
+import { FinalReviewType } from "./types/final-review.type";
 import { PatientInitialInfoType } from "./types/patient-info.type";
 import { PatientVitalsType } from "./types/patient-vitals.type";
 import { SessionHistoryType } from "./types/session-history.type";
@@ -67,10 +68,10 @@ export class ChatService {
 		const sessionStartTime = new Date();
 		const prompt = createPatientPrompt(specialty);
 
-		const { outputMessage, patient } =
-			this.parseAiResponse<PatientInitialInfoType>(
-				await this.aiService.generate(prompt),
-			);
+		const { outputMessage, patient } = await this.aiService.generateValidated(
+			prompt,
+			(response) => this.parseAiResponse<PatientInitialInfoType>(response),
+		);
 
 		const {
 			patientName,
@@ -138,8 +139,8 @@ export class ChatService {
 		const prompt = generateActiveChatPrompt(session, message);
 
 		const { outputMessage, patient: vitals } =
-			this.parseAiResponse<PatientVitalsType>(
-				await this.aiService.generate(prompt),
+			await this.aiService.generateValidated(prompt, (response) =>
+				this.parseAiResponse<PatientVitalsType>(response),
 			);
 
 		session.sessionHistory.push({
@@ -179,33 +180,36 @@ export class ChatService {
 				: 0;
 
 			const prompt = generateFinalReviewPrompt(session);
-			const aiResponse = await this.aiService.generate(prompt);
+			const review = await this.aiService.generateValidated(
+				prompt,
+				(response) => this.parseFinalReview(response),
+			);
 
-			const response = await this.databaseService.sessions.update({
+			const patientSurvived = patientSurvivalStatus !== "deceased";
+
+			await this.databaseService.sessions.update({
 				where: { id: sessionId },
 				data: {
-					correct_diagnosis: true, // ai will tell us this
-					systemAnalysis: aiResponse.response,
+					correct_diagnosis: review.diagnosis.correct,
+					systemAnalysis: JSON.stringify(review),
 					score: finalScore,
 					status: SessionStatusEnum.COMPLETED,
 					duration_seconds: sessionDuration,
 					final_diagnosis: session.finalDiagnosis,
-					patient_survived:
-						patientSurvivalStatus === "deceased" ? false : true,
+					patient_survived: patientSurvived,
 					history,
 				},
-				select: {
-					correct_diagnosis: true,
-					score: true,
-					status: true,
-					duration_seconds: true,
-					final_diagnosis: true,
-					patient_survived: true,
-					systemAnalysis: true,
-				},
+				select: { id: true },
 			});
 
-			client.emit("session:end", { response, scores });
+			client.emit("session:end", {
+				review,
+				score: finalScore,
+				stepScores: scores,
+				patientSurvived,
+				durationSeconds: sessionDuration,
+				finalDiagnosis: session.finalDiagnosis,
+			});
 		} finally {
 			this.activeSessions.delete(sessionId);
 		}
@@ -225,13 +229,48 @@ export class ChatService {
 		outputMessage: string;
 		patient: T;
 	} {
-		const patientData: { message: string; vitals: string } =
+		const patientData: { message?: string; vitals?: string } =
 			this.xmlParser.parse(aiResponse.response);
 
+		if (!patientData?.message || patientData.vitals === undefined) {
+			throw new BadRequestException(
+				"AI response was missing the message or vitals block",
+			);
+		}
+
 		const outputMessage = patientData.message;
-		const patient: T = JSON.parse(patientData.vitals.replace("\n", ""));
+		const patient = JSON.parse(String(patientData.vitals).trim()) as T;
 
 		return { outputMessage, patient };
+	}
+
+	private parseFinalReview(aiResponse: GenerateResponse): FinalReviewType {
+		const raw = aiResponse.response;
+		const start = raw.indexOf("{");
+		const end = raw.lastIndexOf("}");
+
+		if (start === -1 || end <= start) {
+			throw new BadRequestException(
+				"AI review response did not contain a JSON object",
+			);
+		}
+
+		let review: FinalReviewType;
+		try {
+			review = JSON.parse(raw.slice(start, end + 1)) as FinalReviewType;
+		} catch {
+			throw new BadRequestException("AI review response was not valid JSON");
+		}
+
+		if (
+			!review?.diagnosis ||
+			typeof review.diagnosis.correct !== "boolean" ||
+			typeof review.finalScore !== "number"
+		) {
+			throw new BadRequestException("AI review response was malformed");
+		}
+
+		return review;
 	}
 
 	private getSession(sessionId: number) {

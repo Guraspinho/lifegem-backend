@@ -27,37 +27,30 @@ export function generateFinalReviewPrompt(session: SessionHistoryType): string {
 
         ${steps}
 
-        Write a structured review of this session. Use this exact structure and nothing else:
+        Review the session and respond with a SINGLE JSON object and nothing else.
+        Use exactly this shape:
 
-        OVERALL PERFORMANCE
-        One short paragraph summarizing how the trainee performed overall. Mention the final diagnosis and whether it was correct.
-
-        WHAT WENT WELL
-        List the specific steps or decisions the trainee got right. Be concrete, reference what they actually said or did.
-
-        WHAT COULD BE IMPROVED
-        List the mistakes, missed steps, or suboptimal decisions. Explain why each matters clinically.
-
-        KEY LEARNING POINTS
-        2-4 concise takeaways the trainee should remember from this case.
-
-        FINAL SCORE
-        Give a score out of 100 based on overall accuracy, reasoning, and outcome. One sentence justification.
-
-        DIAGNOSIS RESULT
         {
-            "correct_diagnosis": <true|false>,
-            "actual_condition": "${session.patient.condition}",
-            "trainee_diagnosis": "${session.finalDiagnosis}",
-            "diagnosis_notes": "<one sentence on why it is correct or what was wrong>"
+            "overallPerformance": "<one short paragraph summarizing how the trainee performed overall, mentioning the final diagnosis and whether it was correct>",
+            "whatWentWell": ["<specific decision the trainee got right>", "..."],
+            "whatCouldBeImproved": ["<a mistake, missed step, or suboptimal decision and why it matters clinically>", "..."],
+            "keyLearningPoints": ["<concise takeaway>", "..."],
+            "finalScore": <number 0-100 based on accuracy, reasoning, and outcome>,
+            "scoreJustification": "<one sentence justifying the score>",
+            "diagnosis": {
+                "correct": <true|false>,
+                "actualCondition": "${session.patient.condition}",
+                "traineeDiagnosis": "${session.finalDiagnosis}",
+                "notes": "<one sentence on why the diagnosis is correct or what was wrong>"
+            }
         }
 
         RULES:
-        - Write in plain English, easy to read.
-        - Be honest but constructive. Do not sugarcoat serious mistakes.
-        - Do not use dramatic language. Stay professional and educational.
+        - Respond with valid JSON only. No markdown, no code fences, no text before or after the object.
+        - Write the text fields in plain English, easy to read.
+        - Be honest but constructive. Do not sugarcoat serious mistakes, but stay professional and educational.
+        - "whatWentWell", "whatCouldBeImproved" and "keyLearningPoints" must be arrays of short strings. Use 2-4 items each. If nothing fits a category, use an empty array.
         - Reference specific steps by number when relevant (e.g. "In step 3...").
-        - Keep the total response under 500 words excluding the DIAGNOSIS RESULT block.
-        - The DIAGNOSIS RESULT block must always be valid JSON, no extra text around it.
+        - Do not use the less-than or greater-than characters; write "below"/"above" instead (e.g. "SpO2 below 90").
     `;
 }
