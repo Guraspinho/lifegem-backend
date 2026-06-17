@@ -8,6 +8,7 @@ import { swaggerConfig } from "./core/swagger/swagger";
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
+	const logger = new Logger("Bootstrap");
 
 	const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 	SwaggerModule.setup("api-docs", app, swaggerDocument);
@@ -24,9 +25,9 @@ async function bootstrap() {
 
 	app.use(cookieParser());
 
-	await app.listen(3000, "0.0.0.0");
+	await app.listen(process.env.PORT ?? 3000, "0.0.0.0");
 
-	const logger = new Logger("Bootstrap");
+   	logger.log(`Listening on ${process.env.PORT ?? 3000}`);
 
 	if (process.env.USE_OLLAMA_CLOUD === "true") {
 		logger.log("The app is using Ollama cloud ");
