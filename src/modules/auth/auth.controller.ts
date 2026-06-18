@@ -53,7 +53,7 @@ export class AuthController {
 			maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
 			httpOnly: true,
 			secure: process.env.NODE_ENV === "production", // true for HTTPS
-			sameSite: "strict",
+			sameSite: "none",
 		});
 
 		return { accessToken };
