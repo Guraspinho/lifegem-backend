@@ -96,7 +96,7 @@ export class AuthController {
 		response.clearCookie("refresh_token", {
 			httpOnly: true,
 			secure: process.env.NODE_ENV === "production",
-			sameSite: "strict",
+			sameSite: "none",
 		});
 
 		return await this.authService.logout(sub);
